@@ -1,0 +1,27 @@
+#!/bin/bash
+
+BARE_REPOS_PATH='/repos/'
+
+if [ $# -lt 2 ]
+then
+  echo "Usage: $0 Project User1 User2 ..."
+  exit
+fi
+
+groupadd $1
+
+for user in $@; do
+  if [ "$user" != $1 ]; then
+    usermod -a -G $1 $user
+  fi
+done
+
+pushd $BARE_REPOS_PATH > /dev/null
+mkdir $1
+pushd $1 > /dev/null
+git init --bare --shared=0770
+pushd .. > /dev/null
+chown -R root:$1 $1
+
+cp `dirname $0`/merge-hook "$BARE_REPOS_PATH$1/hooks/post-merge"
+chmod +x "$BARE_REPOS_PATH$1/hooks/post-merge"

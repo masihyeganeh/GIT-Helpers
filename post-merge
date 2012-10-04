@@ -1,0 +1,56 @@
+#!/bin/bash
+
+BARE_REPOS_PATH='/repos/'
+NONBARE_REPOS_PATH='/home/user/public_html/'
+
+HOST=$(git config ftp.host)
+USER=$(git config ftp.user)
+PASSWD=$(git config ftp.pass)
+
+PWD=`pwd`
+
+PROJECT=`basename $PWD`
+
+SCRIPT='script'
+TEMP='temp.files'
+
+pushd $NONBARE_REPOS_PATH$PROJECT > /dev/null
+
+git pull origin master
+
+echo '#!/bin/bash' > $SCRIPT
+echo '' >> $SCRIPT
+echo "ftp -inv $HOST << EOT" >> $SCRIPT
+echo "ascii" >> $SCRIPT
+echo "user $USER $PASSWD" >> $SCRIPT
+
+files=`git diff --name-only -R HEAD HEAD~1`
+
+touch $TEMP
+
+for file in $files; do
+    dir=$file
+    while [ $dir != "." ]; do
+        dir=`dirname $dir`
+        echo "mkdir $dir" >> $TEMP
+    done
+done
+
+sort -u $(seq -f "-k1.%0.0f" 100 -1 1) $TEMP >> $SCRIPT # maybe a "| tail -n +2 -" needed to be added to this line but it makes "mkdir ."
+
+rm -rf $TEMP
+
+files=`git diff --name-only -R HEAD HEAD~1`
+
+for file in $files; do
+ 	echo "mput $file" >> $SCRIPT
+done
+
+echo "bye" >> $SCRIPT
+echo "EOT" >> $SCRIPT
+
+chmod +x $SCRIPT
+
+bash $SCRIPT > "${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d).log"
+
+rm -rf $SCRIPT

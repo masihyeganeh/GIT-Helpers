@@ -1,0 +1,14 @@
+#!/bin/bash
+
+BARE_REPOS_PATH='/repos/'
+
+if [ $# -lt 1 ]
+then
+  echo "Usage: $0 Project"
+  exit
+fi
+
+groupdel $1
+
+pushd $BARE_REPOS_PATH > /dev/null
+rm -rf $1

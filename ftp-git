@@ -1,0 +1,15 @@
+#!/bin/bash
+
+BARE_REPOS_PATH='/repos/'
+
+if [ $# -lt 4 ]
+then
+  echo "Usage: $0 Project FTP-Host FTP-User FTP-Password"
+  exit
+fi
+
+pushd $BARE_REPOS_PATH$1 > /dev/null
+
+git config ftp.host $2
+git config ftp.user $3
+git config ftp.pass $4
