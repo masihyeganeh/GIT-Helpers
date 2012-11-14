@@ -1,6 +1,7 @@
 #!/bin/bash
 
 BARE_REPOS_PATH='/repos/'
+NONBARE_REPOS_PATH='/home/user/public_html/'
 
 if [ $# -lt 2 ]
 then
@@ -16,12 +17,29 @@ for user in $@; do
   fi
 done
 
+usermod -a -G $1 'deploy'
+
 pushd $BARE_REPOS_PATH > /dev/null
 mkdir $1
 pushd $1 > /dev/null
 git init --bare --shared=0770
+
+#  git --bare update-server-info
+#  git config core.worktree /home/caius/vhosts/somesite.com/htdocs
+#  git config core.bare false
+#  git config receive.denycurrentbranch ignore
+#  cat > hooks/post-receive
+#  #!/bin/sh
+#  git checkout -f
+#  ^D
+
 pushd .. > /dev/null
 chown -R root:$1 $1
 
-cp `dirname $0`/merge-hook "$BARE_REPOS_PATH$1/hooks/post-merge"
-chmod +x "$BARE_REPOS_PATH$1/hooks/post-merge"
+cp `dirname $0`/git-receive-hook "$BARE_REPOS_PATH$1/hooks/post-receive"
+chmod +x "$BARE_REPOS_PATH$1/hooks/post-receive"
+
+pushd $NONBARE_REPOS_PATH > /dev/null
+git clone --no-hardlinks $BARE_REPOS_PATH$1
+chown -R root:$1 $1
+chmod -R 0775 $1

@@ -5,7 +5,13 @@ These scripts are useful for making git in a local servers, adding users to it a
 
 #How to install
 
-Just copy all files to `/usr/local/bin/` and you are done.
+Just copy all files to `/usr/local/bin/` and make them executable
+```
+chmod +x make-git
+chmod +x ftp-git
+chmod +x delete-git
+```
+and you are done.
 
 #How to Use
 

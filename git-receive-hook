@@ -1,0 +1,65 @@
+#!/bin/bash
+
+BARE_REPOS_PATH='/repos/'
+NONBARE_REPOS_PATH='/home/user/public_html/'
+
+HOST=$(git config ftp.host)
+USER=$(git config ftp.user)
+PASSWD=$(git config ftp.pass)
+
+PWD=`pwd`
+
+PROJECT=`basename $PWD`
+
+SCRIPT="deploy-script-`date +%Y-%m-%d`"
+TEMP='temp.files'
+
+pushd $NONBARE_REPOS_PATH$PROJECT > /dev/null
+
+unset $(git rev-parse --local-env-vars)
+git pull origin master
+
+if [ `whoami` = 'deploy' ]; then
+
+	echo '#!/bin/bash' > $SCRIPT
+	echo '' >> $SCRIPT
+	echo "ftp -inv $HOST << EOT" >> $SCRIPT
+	echo "ascii" >> $SCRIPT
+	echo "user $USER $PASSWD" >> $SCRIPT
+
+	LAST_COMMIT_DATE=$(find $BARE_REPOS_PATHlogs/$PROJECT-* -printf "%f\n" | sort -r | head -n +1)
+	LAST_COMMIT_DATE=${NAME/%\.log/}
+	LAST_COMMIT_DATE=${NAME/$PROJECT\-/}
+
+	files=`git log --since=$LAST_COMMIT_DATE --pretty=format: --name-only | sort -u`
+
+	touch $TEMP
+
+	for file in $files; do
+	    dir=$file
+	    while [ $dir != "." ]; do
+	        dir=`dirname $dir`
+	        echo "mkdir $dir" >> $TEMP
+	    done
+	done
+
+	sort -u $TEMP >> $SCRIPT # maybe a "| tail -n +2 -" needed to be added to this line but it makes "mkdir ."
+
+	rm -rf $TEMP
+
+	files=`git diff --name-only -R HEAD HEAD~1`
+
+	for file in $files; do
+	 	echo "mput $file" >> $SCRIPT
+	done
+
+	echo "bye" >> $SCRIPT
+	echo "EOT" >> $SCRIPT
+
+	chmod +x $SCRIPT
+
+	bash $SCRIPT >> "${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d).log"
+
+	rm -rf $SCRIPT
+
+fi
