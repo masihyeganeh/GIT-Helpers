@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BARE_REPOS_PATH='/repos/'
-NONBARE_REPOS_PATH='/home/user/public_html/'
+NONBARE_REPOS_PATH='/home/public_html/'
 
 HOST=$(git config ftp.host)
 USER=$(git config ftp.user)
@@ -17,7 +17,12 @@ TEMP='temp.files'
 pushd $NONBARE_REPOS_PATH$PROJECT > /dev/null
 
 unset $(git rev-parse --local-env-vars)
+git checkout -- .
 git pull origin master
+
+pushd .. > /dev/null
+chmod -f -R 0777 $PROJECT
+pushd $PROJECT > /dev/null
 
 if [ `whoami` = 'deploy' ]; then
 
@@ -28,30 +33,43 @@ if [ `whoami` = 'deploy' ]; then
 	echo "user $USER $PASSWD" >> $SCRIPT
 
 	LAST_COMMIT_DATE=$(find $BARE_REPOS_PATHlogs/$PROJECT-* -printf "%f\n" | sort -r | head -n +1)
-	LAST_COMMIT_DATE=${NAME/%\.log/}
-	LAST_COMMIT_DATE=${NAME/$PROJECT\-/}
+	LAST_COMMIT_DATE=${LAST_COMMIT_DATE/%\.log/}
+	LAST_COMMIT_DATE=${LAST_COMMIT_DATE/$PROJECT\-/}
 
-	files=`git log --since=$LAST_COMMIT_DATE --pretty=format: --name-only | sort -u`
+
+	if [ "$LAST_COMMIT_DATE" = "" ]; then
+		files=`git log --pretty=format: --name-only | sort -u`
+	else
+		files=`git log --since=$LAST_COMMIT_DATE --pretty=format: --name-only | sort -u`
+	fi
 
 	touch $TEMP
+
+	SAVEIFS=$IFS
+	IFS=$(echo -en "\n\b")
 
 	for file in $files; do
 	    dir=$file
 	    while [ $dir != "." ]; do
 	        dir=`dirname $dir`
-	        echo "mkdir $dir" >> $TEMP
+	        echo "mkdir \"$dir\"" >> $TEMP
 	    done
 	done
+
+	IFS=$SAVEIFS
 
 	sort -u $TEMP >> $SCRIPT # maybe a "| tail -n +2 -" needed to be added to this line but it makes "mkdir ."
 
 	rm -rf $TEMP
 
-	files=`git diff --name-only -R HEAD HEAD~1`
+	SAVEIFS=$IFS
+	IFS=$(echo -en "\n\b")
 
 	for file in $files; do
-	 	echo "mput $file" >> $SCRIPT
+	 	echo "mput \"$file\"" >> $SCRIPT
 	done
+
+	IFS=$SAVEIFS
 
 	echo "bye" >> $SCRIPT
 	echo "EOT" >> $SCRIPT
@@ -61,5 +79,7 @@ if [ `whoami` = 'deploy' ]; then
 	bash $SCRIPT >> "${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d).log"
 
 	rm -rf $SCRIPT
+
+	#$(cat ${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d).log)
 
 fi

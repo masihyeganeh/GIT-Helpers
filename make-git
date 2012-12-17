@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BARE_REPOS_PATH='/repos/'
-NONBARE_REPOS_PATH='/home/user/public_html/'
+NONBARE_REPOS_PATH='/home/public_html/'
 
 if [ $# -lt 2 ]
 then
@@ -41,5 +41,5 @@ chmod +x "$BARE_REPOS_PATH$1/hooks/post-receive"
 
 pushd $NONBARE_REPOS_PATH > /dev/null
 git clone --no-hardlinks $BARE_REPOS_PATH$1
-chown -R root:$1 $1
+chown -R root:git $1
 chmod -R 0775 $1
