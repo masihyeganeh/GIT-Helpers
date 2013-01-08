@@ -29,7 +29,7 @@ if [ `whoami` = 'deploy' ]; then
 	echo '#!/bin/bash' > $SCRIPT
 	echo '' >> $SCRIPT
 	echo "ftp -inv $HOST << EOT" >> $SCRIPT
-	echo "ascii" >> $SCRIPT
+	echo "binary" >> $SCRIPT
 	echo "user $USER $PASSWD" >> $SCRIPT
 
 	LAST_COMMIT_DATE=$(find $BARE_REPOS_PATHlogs/$PROJECT-* -printf "%f\n" | sort -r | head -n +1)
