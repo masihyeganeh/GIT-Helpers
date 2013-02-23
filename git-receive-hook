@@ -42,7 +42,7 @@ if [ `whoami` = 'deploy' ]; then
 		files=`git log --pretty=format: --name-only | sort -u`
 	else
 		echo "Last deploy date is $LAST_COMMIT_DATE"
-		files=`git log --since=$LAST_COMMIT_DATE --pretty=format: --name-only | sort -u`
+		files=`git log --since="$LAST_COMMIT_DATE" --pretty=format: --name-only | sort -u`
 	fi
 
 	touch $TEMP
@@ -78,10 +78,10 @@ if [ `whoami` = 'deploy' ]; then
 
 	chmod +x $SCRIPT
 
-	bash $SCRIPT >> "${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d).log"
+	bash $SCRIPT >> "${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d-%H:%M).log"
 
 	rm -rf $SCRIPT
 
-	#$(cat ${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d).log)
+	#$(cat ${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d-%H:%M).log)
 
 fi
