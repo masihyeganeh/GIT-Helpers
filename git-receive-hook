@@ -32,14 +32,16 @@ if [ `whoami` = 'deploy' ]; then
 	echo "binary" >> $SCRIPT
 	echo "user $USER $PASSWD" >> $SCRIPT
 
-	LAST_COMMIT_DATE=$(find $BARE_REPOS_PATHlogs/$PROJECT-* -printf "%f\n" | sort -r | head -n +1)
+	LAST_COMMIT_DATE=$(find $BARE_REPOS_PATHlogs/ -name "$PROJECT-*.log" -printf "%f\n" 2>/dev/null | sort -r | head -n +1)
 	LAST_COMMIT_DATE=${LAST_COMMIT_DATE/%\.log/}
 	LAST_COMMIT_DATE=${LAST_COMMIT_DATE/$PROJECT\-/}
 
 
 	if [ "$LAST_COMMIT_DATE" = "" ]; then
+		echo "This is first deploy"
 		files=`git log --pretty=format: --name-only | sort -u`
 	else
+		echo "Last deploy date is $LAST_COMMIT_DATE"
 		files=`git log --since=$LAST_COMMIT_DATE --pretty=format: --name-only | sort -u`
 	fi
 
