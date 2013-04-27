@@ -1,0 +1,28 @@
+#!/bin/bash
+
+BARE_REPOS_PATH='/repos/'
+NONBARE_REPOS_PATH='/home/public_html/'
+
+if [ $# -lt 2 ]
+then
+  echo "Usage: $0 Project User1 User2 ..."
+  exit
+fi
+
+groupadd $1
+
+for user in $@; do
+  if [ "$user" != $1 ]; then
+    usermod -a -G $1 $user
+  fi
+done
+
+usermod -a -G $1 'deploy'
+
+pushd $BARE_REPOS_PATH > /dev/null
+chown -R root:$1 $1
+
+pushd $NONBARE_REPOS_PATH > /dev/null
+
+chown -R root:git $1
+chmod -R 0777 $1

@@ -42,4 +42,4 @@ chmod +x "$BARE_REPOS_PATH$1/hooks/post-receive"
 pushd $NONBARE_REPOS_PATH > /dev/null
 git clone --no-hardlinks $BARE_REPOS_PATH$1
 chown -R root:git $1
-chmod -R 0775 $1
+chmod -R 0777 $1
