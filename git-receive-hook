@@ -48,6 +48,25 @@ if [ `whoami` = 'deploy' ]; then
 
 	touch $TEMP
 
+	IGNORES=`cat .ftpignore`
+
+	for file in $files; do
+		IGNOTE_IT="no"
+		for IGNORE in $IGNORES; do
+			if [ `echo "$file" | grep "^$IGNORE"` ]; then
+				IGNOTE_IT="yes"
+			fi
+		done
+		if [ $IGNOTE_IT = "no" ]; then
+			echo "$file" >> $TEMP
+		fi
+	done
+
+	files=`cat $TEMP`
+	rm -rf $TEMP
+
+	touch $TEMP
+
 	SAVEIFS=$IFS
 	IFS=$(echo -en "\n\b")
 
@@ -79,10 +98,11 @@ if [ `whoami` = 'deploy' ]; then
 
 	chmod +x $SCRIPT
 
-	bash $SCRIPT >> "${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d-%H:%M).log"
+	DATE=`date +%Y-%m-%d-%H:%M`
+	bash $SCRIPT >> "${BARE_REPOS_PATH}logs/$PROJECT-$DATE.log"
 
 	rm -rf $SCRIPT
 
-	#$(cat ${BARE_REPOS_PATH}logs/$PROJECT-$(date +%Y-%m-%d-%H:%M).log)
+	$(cat ${BARE_REPOS_PATH}logs/$PROJECT-$DATE.log)
 
 fi
