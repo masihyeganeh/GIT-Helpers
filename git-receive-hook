@@ -6,6 +6,7 @@ NONBARE_REPOS_PATH='/home/public_html/'
 HOST=$(git config ftp.host)
 USER=$(git config ftp.user)
 PASSWD=$(git config ftp.pass)
+DEPLOYER=$(git config deploy.user)
 
 PWD=`pwd`
 
@@ -25,84 +26,107 @@ pushd .. > /dev/null
 chmod -f -R 0777 $PROJECT
 pushd $PROJECT > /dev/null
 
-if [ `whoami` = 'deploy' ]; then
+VERSION=`git log --pretty=format: --name-only | grep "^version$"`
 
-	echo '#!/bin/bash' > $SCRIPT
-	echo '' >> $SCRIPT
-	echo "ftp -inv \"$HOST\" << EOT" >> $SCRIPT
-	echo "binary" >> $SCRIPT
-	echo "user \"$USER\" \"$PASSWD\"" >> $SCRIPT
-
-	LAST_COMMIT_DATE=$(find $BARE_REPOS_PATHlogs/ -name "$PROJECT-*.log" -printf "%f\n" 2>/dev/null | sort -r | head -n +1)
-	LAST_COMMIT_DATE=${LAST_COMMIT_DATE/%\.log/}
-	LAST_COMMIT_DATE=${LAST_COMMIT_DATE/$PROJECT\-/}
-
-
-	if [ "$LAST_COMMIT_DATE" = "" ]; then
-		echo "This is first deploy"
-		files=`git log --pretty=format: --name-only | sort -u`
-	else
-		echo "Last deploy date is $LAST_COMMIT_DATE"
-		files=`git log --since="$LAST_COMMIT_DATE" --pretty=format: --name-only | sort -u`
+if [ `whoami` != 'deploy' ] && [ `whoami` != "$DEPLOYER" ]; then
+	if [ "$VERSION" != '' ]; then
+		echo "You can't change version file. reverting version file..."
+		git checkout HEAD~1 "version"
+		git commit -a -m 'version file Retrieved from older revision'
 	fi
+	exit 0
+fi
 
-	touch $TEMP
+if [ "$VERSION" = '' ]; then
+	exit 0
+fi
 
-	IGNORES=`cat .ftpignore`
+VERSION=`cat version`
 
-	for file in $files; do
-		IGNOTE_IT="no"
-		for IGNORE in $IGNORES; do
-			if [ `echo "$file" | grep "^$IGNORE"` ]; then
-				IGNOTE_IT="yes"
-			fi
-		done
-		if [ $IGNOTE_IT = "no" ]; then
-			echo "$file" >> $TEMP
+echo '#!/bin/bash' > $SCRIPT
+echo '' >> $SCRIPT
+echo "ftp -inv \"$HOST\" << EOT" >> $SCRIPT
+echo "binary" >> $SCRIPT
+echo "user \"$USER\" \"$PASSWD\"" >> $SCRIPT
+
+LAST_COMMIT_DATE=$(find $BARE_REPOS_PATHlogs/ -name "$PROJECT-*.log" -printf "%f\n" 2>/dev/null | sort -r | head -n +1)
+LAST_COMMIT_DATE=${LAST_COMMIT_DATE/%\.log/}
+LAST_COMMIT_DATE=${LAST_COMMIT_DATE/$PROJECT\-/}
+
+
+if [ "$LAST_COMMIT_DATE" = "" ]; then
+	echo "This is first deploy"
+	files=`git log --pretty=format: --name-only | sort -u`
+else
+	echo "Last deploy date is $LAST_COMMIT_DATE"
+	files=`git log --since="$LAST_COMMIT_DATE" --pretty=format: --name-only | sort -u`
+fi
+
+touch $TEMP
+
+IGNORES=`cat .ftpignore`
+
+for file in $files; do
+	IGNOTE_IT="no"
+	for IGNORE in $IGNORES; do
+		if [ `echo "$file" | grep "^$IGNORE"` ]; then
+			IGNOTE_IT="yes"
 		fi
 	done
+	if [ $IGNOTE_IT = "no" ]; then
+		echo "$file" >> $TEMP
+	fi
+done
 
-	files=`cat $TEMP`
-	rm -rf $TEMP
+files=`cat $TEMP`
+rm -rf $TEMP
 
-	touch $TEMP
+touch $TEMP
 
-	SAVEIFS=$IFS
-	IFS=$(echo -en "\n\b")
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
 
-	for file in $files; do
-	    dir=$file
-	    while [ $dir != "." ]; do
-	        dir=`dirname $dir`
-	        echo "mkdir \"$dir\"" >> $TEMP
-	    done
+for file in $files; do
+	dir=$file
+	while [ $dir != "." ]; do
+		dir=`dirname $dir`
+		echo "mkdir \"$dir\"" >> $TEMP
 	done
+done
 
-	IFS=$SAVEIFS
+IFS=$SAVEIFS
 
-	sort -u $TEMP >> $SCRIPT # maybe a "| tail -n +2 -" needed to be added to this line but it makes "mkdir ."
+sort -u $TEMP >> $SCRIPT # maybe a "| tail -n +2 -" needed to be added to this line but it makes "mkdir ."
 
-	rm -rf $TEMP
+rm -rf $TEMP
 
-	SAVEIFS=$IFS
-	IFS=$(echo -en "\n\b")
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
 
-	for file in $files; do
-	 	echo "mput \"$file\"" >> $SCRIPT
-	done
+for file in $files; do
+	echo "mput \"$file\"" >> $SCRIPT
+done
 
-	IFS=$SAVEIFS
+IFS=$SAVEIFS
 
-	echo "bye" >> $SCRIPT
-	echo "EOT" >> $SCRIPT
+echo "bye" >> $SCRIPT
+echo "EOT" >> $SCRIPT
 
-	chmod +x $SCRIPT
+chmod +x $SCRIPT
 
-	DATE=`date +%Y-%m-%d-%H:%M`
-	bash $SCRIPT >> "${BARE_REPOS_PATH}logs/$PROJECT-$DATE.log"
+echo "Starting FTP upload..."
 
-	rm -rf $SCRIPT
+DATE=`date +%Y-%m-%d-%H:%M`
+bash $SCRIPT >> "${BARE_REPOS_PATH}logs/$PROJECT-$DATE.log"
 
-	$(cat ${BARE_REPOS_PATH}logs/$PROJECT-$DATE.log)
+rm -rf $SCRIPT
 
+git tag "$VERSION" # maybe this one should be deleted
+pushd $BARE_REPOS_PATH$PROJECT > /dev/null
+git tag "$VERSION"
+
+if grep -Fq "230 OK" "${BARE_REPOS_PATH}logs/$PROJECT-$DATE.log"; then
+	grep "uploaded" "${BARE_REPOS_PATH}logs/$PROJECT-$DATE.log"
+else
+	cat "${BARE_REPOS_PATH}logs/$PROJECT-$DATE.log"
 fi
