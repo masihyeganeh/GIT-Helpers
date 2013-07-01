@@ -26,7 +26,7 @@ pushd .. > /dev/null
 chmod -f -R 0777 $PROJECT
 pushd $PROJECT > /dev/null
 
-VERSION=`git diff --name-only HEAD~1 | grep "^version$"`
+VERSION=`git diff --name-only HEAD~1 HEAD | grep "^version$"`
 
 if [ `whoami` != 'deploy' ] && [ `whoami` != "$DEPLOYER" ]; then
 	if [ "$VERSION" != '' ]; then
