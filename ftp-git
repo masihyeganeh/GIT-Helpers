@@ -15,12 +15,12 @@ echo "bye" >> $SCRIPT
 echo "EOT" >> $SCRIPT
 
 RESULT=`bash $SCRIPT`
-if [!`echo "$RESULT" | grep -Fq "Connected to"`] ; then
+if ! `echo "$RESULT" | grep -Fq "Connected to"` ; then
 	echo "Host is not valid"
 	rm -rf $SCRIPT
 	exit
 fi
-if [!`echo "$RESULT" | grep -Fq "230 OK"`] ; then
+if ! `echo "$RESULT" | grep -Fq "230 OK"` ; then
 	echo "Username or password is wrong"
 	rm -rf $SCRIPT
 	exit
