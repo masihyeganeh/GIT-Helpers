@@ -1,12 +1,32 @@
 #!/bin/bash
 
 BARE_REPOS_PATH='/repos/'
+SCRIPT="/tmp/ftp-test-`date +%Y-%m-%d`"
 
 if [ $# -lt 4 ]
 then
   echo "Usage: $0 Project FTP-Host FTP-User FTP-Password"
   exit
 fi
+
+echo "ftp -inv \"$2\" << EOT" >> $SCRIPT
+echo "user \"$3\" \"$4\"" >> $SCRIPT
+echo "bye" >> $SCRIPT
+echo "EOT" >> $SCRIPT
+
+RESULT=`bash $SCRIPT`
+if [!`echo "$RESULT" | grep -Fq "Connected to"`] ; then
+	echo "Host is not valid"
+	rm -rf $SCRIPT
+	exit
+fi
+if [!`echo "$RESULT" | grep -Fq "230 OK"`] ; then
+	echo "Username or password is wrong"
+	rm -rf $SCRIPT
+	exit
+fi
+
+rm -rf $SCRIPT
 
 pushd $BARE_REPOS_PATH$1 > /dev/null
 
