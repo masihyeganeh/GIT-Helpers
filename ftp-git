@@ -20,7 +20,7 @@ if ! `echo "$RESULT" | grep -Fq "Connected to"` ; then
 	rm -rf $SCRIPT
 	exit
 fi
-if ! `echo "$RESULT" | grep -Fq "230 OK"` ; then
+if ! `echo "$RESULT" | grep -Fq "230 "` ; then
 	echo "Username or password is wrong"
 	rm -rf $SCRIPT
 	exit
